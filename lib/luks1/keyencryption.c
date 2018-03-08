@@ -149,12 +149,8 @@ int LUKS_encrypt_to_storage(char *src, size_t srcLength,
 	struct crypt_storage *s;
 	int devfd = -1, r = 0;
 
-	/* Only whole sector writes supported */
-	if (srcLength % SECTOR_SIZE)
-		return -EINVAL;
-
 	/* Encrypt buffer */
-	r = crypt_storage_init(&s, 0, cipher, cipher_mode, vk->key, vk->keylength);
+	r = crypt_storage_init(&s, SECTOR_SIZE, cipher, cipher_mode, vk->key, vk->keylength);
 
 	if (r)
 		log_dbg("Userspace crypto wrapper cannot use %s-%s (%d).",
@@ -173,7 +169,7 @@ int LUKS_encrypt_to_storage(char *src, size_t srcLength,
 
 	log_dbg("Using userspace crypto wrapper to access keyslot area.");
 
-	r = crypt_storage_encrypt(s, 0, srcLength / SECTOR_SIZE, src);
+	r = crypt_storage_encrypt(s, 0, srcLength, src);
 	crypt_storage_destroy(s);
 
 	if (r)
@@ -212,11 +208,7 @@ int LUKS_decrypt_from_storage(char *dst, size_t dstLength,
 	struct crypt_storage *s;
 	int devfd = -1, r = 0;
 
-	/* Only whole sector reads supported */
-	if (dstLength % SECTOR_SIZE)
-		return -EINVAL;
-
-	r = crypt_storage_init(&s, 0, cipher, cipher_mode, vk->key, vk->keylength);
+	r = crypt_storage_init(&s, SECTOR_SIZE, cipher, cipher_mode, vk->key, vk->keylength);
 
 	if (r)
 		log_dbg("Userspace crypto wrapper cannot use %s-%s (%d).",
@@ -250,7 +242,7 @@ int LUKS_decrypt_from_storage(char *dst, size_t dstLength,
 	close(devfd);
 
 	/* Decrypt buffer */
-	r = crypt_storage_decrypt(s, 0, dstLength / SECTOR_SIZE, dst);
+	r = crypt_storage_decrypt(s, 0, dstLength, dst);
 	crypt_storage_destroy(s);
 
 	return r;
